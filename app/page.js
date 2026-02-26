@@ -320,11 +320,34 @@ export default function EventEaseApp() {
              </select>
              {selectedEventId && (
                 <div className="bg-white rounded-[32px] border border-gray-200 overflow-hidden shadow-sm">
-                   <div className="p-10 flex justify-between border-b items-center"><h3 className="font-black text-gray-900 text-xl">Participant List</h3><button onClick={exportExcel} className="text-indigo-700 font-black hover:underline">📄 Export Excel</button></div>
+                   <div className="p-10 flex justify-between border-b items-center">
+                     <h3 className="font-black text-gray-900 text-xl">Participant List</h3>
+                     <button onClick={exportExcel} className="flex items-center gap-2 text-indigo-700 font-black hover:underline">
+                        <span className="text-lg opacity-40">📄</span> Export Excel
+                     </button>
+                   </div>
                    <table className="w-full text-left font-black">
-                      <thead className="bg-gray-100 text-[11px] uppercase text-gray-700 border-b"><tr className="border-b"><th className="p-6 px-10">Name</th><th className="p-6 px-10 text-right">Action</th></tr></thead>
+                      <thead className="bg-gray-50 text-[11px] uppercase text-gray-500 border-b">
+                        <tr className="border-b">
+                          <th className="p-6 px-10">NAME</th>
+                          <th className="p-6 px-10">EMAIL</th>
+                          <th className="p-6 px-10 text-right">ACTION</th>
+                        </tr>
+                      </thead>
                       <tbody>{participants.filter(p => p.eventId === selectedEventId).map(p => (
-                        <tr key={p.id} className="border-b"><td className="p-6 px-10 text-gray-900">{p.name}</td><td className="p-6 px-10 text-right"><button onClick={()=>handleCheckIn(p.id)} disabled={p.status==='CHECKED IN'} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black disabled:bg-gray-200">{p.status === 'CHECKED IN' ? 'Checked' : 'Check In'}</button></td></tr>
+                        <tr key={p.id} className="border-b hover:bg-gray-50 transition-colors">
+                          <td className="p-6 px-10 text-gray-900">{p.name}</td>
+                          <td className="p-6 px-10 text-gray-500 font-bold text-sm">{p.email}</td>
+                          <td className="p-6 px-10 text-right">
+                            <button 
+                              onClick={()=>handleCheckIn(p.id)} 
+                              disabled={p.status==='CHECKED IN'} 
+                              className={`px-8 py-2.5 rounded-2xl text-xs font-black transition-all ${p.status === 'CHECKED IN' ? 'bg-[#e9ecef] text-white cursor-default' : 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'}`}
+                            >
+                              {p.status === 'CHECKED IN' ? 'Checked' : 'Check In'}
+                            </button>
+                          </td>
+                        </tr>
                       ))}</tbody>
                    </table>
                 </div>
