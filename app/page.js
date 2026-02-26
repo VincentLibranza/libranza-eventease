@@ -21,7 +21,7 @@ export default function EventEaseApp() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEventId, setSelectedEventId] = useState('');
   const [showNewEventModal, setShowNewEventModal] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', date: '', location: '' });
+  const [newEvent, setNewEvent] = useState({ title: '', date: '', location: '', capacity: '100' });
   
   // Registration Form State
   const [regForm, setRegForm] = useState({ eventId: '', name: '', email: '', dept: '' });
@@ -85,7 +85,7 @@ export default function EventEaseApp() {
     setEvents(newList);
     syncToDb(newList, null);
     setShowNewEventModal(false);
-    setNewEvent({ title: '', date: '', location: '' });
+    setNewEvent({ title: '', date: '', location: '', capacity: '100' });
   };
 
   const handleDeleteEvent = (id) => {
@@ -118,7 +118,7 @@ export default function EventEaseApp() {
       const res = await fetch('/api/prediction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promptText: `Events: ${events.length}, Users: ${participants.length}. Return JSON: {"estimatedTurnout": number, "confidence": "string", "trend": "string"}` })
+        body: JSON.stringify({ promptText: `Events: ${events.length}, Users: ${participants.length}. Return JSON.` })
       });
       setPredictionResult(await res.json());
     } catch (e) { alert("AI Service Unavailable"); }
@@ -145,9 +145,9 @@ export default function EventEaseApp() {
           <div className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white text-3xl font-bold bg-indigo-600">📅</div>
           <h1 className="text-3xl font-black mb-8 text-gray-900">EventEase</h1>
           <form onSubmit={handleAuth} className="space-y-4">
-            {authMode === 'signup' && <input required className="w-full p-4 border border-gray-300 rounded-2xl outline-none text-gray-900 placeholder:text-gray-500" placeholder="Name" onChange={e => setAuthForm({...authForm, name: e.target.value})} />}
-            <input required type="email" className="w-full p-4 border border-gray-300 rounded-2xl outline-none text-gray-900 placeholder:text-gray-500" placeholder="Email" onChange={e => setAuthForm({...authForm, email: e.target.value})} />
-            <input required type="password" className="w-full p-4 border border-gray-300 rounded-2xl outline-none text-gray-900 placeholder:text-gray-500" placeholder="Password" onChange={e => setAuthForm({...authForm, password: e.target.value})} />
+            {authMode === 'signup' && <input required className="w-full p-4 border border-gray-300 rounded-2xl outline-none text-gray-900 font-bold" placeholder="Name" onChange={e => setAuthForm({...authForm, name: e.target.value})} />}
+            <input required type="email" className="w-full p-4 border border-gray-300 rounded-2xl outline-none text-gray-900 font-bold" placeholder="Email" onChange={e => setAuthForm({...authForm, email: e.target.value})} />
+            <input required type="password" className="w-full p-4 border border-gray-300 rounded-2xl outline-none text-gray-900 font-bold" placeholder="Password" onChange={e => setAuthForm({...authForm, password: e.target.value})} />
             {authError && <p className="text-red-600 text-xs font-bold">{authError}</p>}
             <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg">
                 {authMode === 'login' ? 'Login' : 'Sign Up'}
@@ -187,7 +187,7 @@ export default function EventEaseApp() {
           </div>
         </header>
 
-        {/* DASHBOARD VIEW - FIXED FONT COLORS */}
+        {/* DASHBOARD VIEW */}
         {view === 'dashboard' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="grid grid-cols-4 gap-6">
@@ -220,14 +220,14 @@ export default function EventEaseApp() {
 
             <div className="p-10 rounded-[32px] text-white flex flex-col gap-4 shadow-xl" style={{ backgroundColor: primaryColor }}>
                <h3 className="text-xl font-black flex items-center gap-2">📈 AI Attendance Prediction</h3>
-               <p className="font-medium text-white text-sm opacity-95">Get AI-powered insights based on historical data and real-time trends.</p>
+               <p className="font-medium text-white text-sm opacity-95">Get AI-powered insights based on historical data.</p>
                {!predictionResult ? (
                  <button onClick={handleAIAnalysis} disabled={isPredicting} className="bg-white text-indigo-700 px-8 py-3 rounded-2xl font-black w-fit hover:bg-gray-100 shadow-md">
                     {isPredicting ? '🧠 Analyzing...' : 'Generate Prediction'}
                  </button>
                ) : (
                  <div className="bg-white/10 p-6 rounded-2xl border border-white/30 space-y-2">
-                    <p className="text-2xl font-black">Turnout Prediction: {predictionResult.estimatedTurnout}</p>
+                    <p className="text-2xl font-black">Turnout: {predictionResult.estimatedTurnout}</p>
                     <p className="text-sm font-medium opacity-100 text-white">{predictionResult.trend}</p>
                     <button onClick={()=>setPredictionResult(null)} className="text-[10px] underline uppercase font-black tracking-widest text-white/80 hover:text-white">Reset Analysis</button>
                  </div>
@@ -236,7 +236,7 @@ export default function EventEaseApp() {
           </div>
         )}
 
-        {/* REMAINING TABS - FIXED TEXT READABILITY */}
+        {/* EVENTS VIEW */}
         {view === 'events' && (
           <div className="grid grid-cols-3 gap-6 animate-in fade-in">
              {events.map(e => (
@@ -251,6 +251,7 @@ export default function EventEaseApp() {
           </div>
         )}
 
+        {/* REGISTRATION VIEW */}
         {view === 'registration' && (
           <div className="max-w-4xl mx-auto flex flex-col items-center animate-in fade-in pt-10">
             <h2 className="text-5xl font-black mb-20 text-center text-gray-900">Event Registration</h2>
@@ -269,6 +270,7 @@ export default function EventEaseApp() {
           </div>
         )}
 
+        {/* ATTENDANCE VIEW */}
         {view === 'attendance' && (
           <div className="space-y-8 animate-in fade-in">
              <select className="w-full p-5 border border-gray-300 rounded-2xl bg-white shadow-sm text-gray-900 font-bold" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
@@ -296,13 +298,46 @@ export default function EventEaseApp() {
         )}
       </main>
 
-      {/* MODAL - FIXED FONT */}
+      {/* NEW EVENT MODAL UPDATED PER SCREENSHOT */}
       {showNewEventModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="p-10 rounded-[40px] max-w-md w-full bg-white shadow-2xl animate-in zoom-in-95 border border-gray-200">
-            <h2 className="text-3xl font-black text-gray-900 mb-8">New Event</h2>
-            <input autoFocus className="w-full p-4 border border-gray-300 rounded-xl outline-none text-gray-900 font-bold" placeholder="Event Title" value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title:e.target.value})} />
-            <div className="flex gap-4 pt-6"><button onClick={()=>setShowNewEventModal(false)} className="flex-1 py-4 font-black border border-gray-200 rounded-2xl text-gray-700 hover:bg-gray-50">Cancel</button><button onClick={handleAddEvent} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">Create</button></div>
+          <div className="p-10 rounded-[24px] max-w-lg w-full bg-white shadow-2xl animate-in zoom-in-95 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">Create New Event</h2>
+            
+            <div className="space-y-5 text-left">
+               <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">Event Title</label>
+                  <input autoFocus className="w-full p-3.5 border border-gray-200 rounded-xl outline-none text-gray-900 focus:ring-2 focus:ring-indigo-500/20" 
+                    value={newEvent.title} 
+                    onChange={e=>setNewEvent({...newEvent, title:e.target.value})} />
+               </div>
+
+               <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">Date</label>
+                  <input type="datetime-local" className="w-full p-3.5 border border-gray-200 rounded-xl outline-none text-gray-900 focus:ring-2 focus:ring-indigo-500/20" 
+                    value={newEvent.date} 
+                    onChange={e=>setNewEvent({...newEvent, date:e.target.value})} />
+               </div>
+
+               <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">Location</label>
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl outline-none text-gray-900 focus:ring-2 focus:ring-indigo-500/20" 
+                    value={newEvent.location} 
+                    onChange={e=>setNewEvent({...newEvent, location:e.target.value})} />
+               </div>
+
+               <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">Capacity</label>
+                  <input type="number" className="w-full p-3.5 border border-gray-200 rounded-xl outline-none text-gray-900 focus:ring-2 focus:ring-indigo-500/20" 
+                    value={newEvent.capacity} 
+                    onChange={e=>setNewEvent({...newEvent, capacity:e.target.value})} />
+               </div>
+
+               <div className="flex gap-4 pt-4">
+                 <button onClick={()=>setShowNewEventModal(false)} className="flex-1 py-3.5 font-bold border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+                 <button onClick={handleAddEvent} className="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-colors">Create</button>
+               </div>
+            </div>
           </div>
         </div>
       )}
