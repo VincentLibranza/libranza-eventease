@@ -134,6 +134,15 @@ export default function EventEaseApp() {
     setNewEvent({ title: '', date: '', location: '', capacity: '100' });
   };
 
+  // ADDED: Delete Logic
+  const handleDeleteEvent = (id) => {
+    if (confirm("Permanently delete this event? This cannot be undone.")) {
+        const newList = events.filter(e => e.id !== id);
+        setEvents(newList);
+        syncToDb(newList, null);
+    }
+  };
+
   const handleRegister = (e) => {
     e.preventDefault();
     if(!regForm.eventId) return alert("Missing Event ID");
@@ -314,9 +323,13 @@ export default function EventEaseApp() {
                <div key={e.id} className="rounded-[32px] border border-gray-200 bg-white shadow-sm group relative overflow-hidden">
                   <div className="h-44 bg-slate-100 relative">
                       <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=500&auto=format&fit=crop" className="w-full h-full object-cover opacity-80" alt="event" />
+                      
+                      {/* ACTION BUTTONS */}
                       <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button onClick={() => { setEditingEventId(e.id); setNewEvent({...e}); setShowNewEventModal(true); }} className="bg-white text-indigo-600 w-8 h-8 rounded-full shadow-lg font-black text-xs flex items-center justify-center hover:bg-gray-50">✎</button>
+                         <button onClick={() => handleDeleteEvent(e.id)} className="bg-red-500 text-white w-8 h-8 rounded-full shadow-lg font-black flex items-center justify-center hover:bg-red-600 transition-all">✕</button>
                       </div>
+
                       <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/?event=${e.id}`); alert("Copied!"); }} className="absolute bottom-4 left-4 bg-white/95 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black shadow-md border border-indigo-100">🔗 COPY LINK</button>
                   </div>
                   <div className="p-6"><h3 className="font-black text-gray-900 text-lg">{e.title}</h3><p className="text-xs text-gray-400 font-bold uppercase mt-1">{e.location || "No Location"}</p></div>
