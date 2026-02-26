@@ -19,6 +19,7 @@ export default function EventEaseApp() {
   
   // UI States
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // SEARCH STATE ADDED
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null); 
   const [newEvent, setNewEvent] = useState({ title: '', date: '', location: '', capacity: '100' });
@@ -154,7 +155,6 @@ export default function EventEaseApp() {
     finally { setIsPredicting(false); }
   };
 
-  // UPDATED EXCEL EXPORT LOGIC
   const exportExcel = () => {
     const filtered = participants.filter(p => p.eventId === selectedEventId);
     const dataToExport = filtered.map(p => ({
@@ -168,6 +168,14 @@ export default function EventEaseApp() {
     XLSX.utils.book_append_sheet(wb, ws, "Attendance");
     XLSX.writeFile(wb, `Attendance_Report_${Date.now()}.xlsx`);
   };
+
+  // SEARCH FILTER LOGIC
+  const displayedParticipants = participants
+    .filter(p => p.eventId === selectedEventId)
+    .filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      p.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   if (isLoading) return <div className="h-screen flex items-center justify-center font-black text-indigo-600 bg-white">Loading EventEase...</div>;
 
@@ -310,11 +318,24 @@ export default function EventEaseApp() {
         )}
 
         {view === 'attendance' && (
-          <div className="space-y-8 animate-in fade-in">
-             <select className="w-full p-5 border border-gray-300 rounded-2xl bg-white shadow-sm text-gray-900 font-black" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
-                <option value="">Choose an Event to Track...</option>
-                {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-             </select>
+          <div className="space-y-6 animate-in fade-in">
+             <div className="flex gap-4">
+                <select className="flex-1 p-5 border border-gray-300 rounded-2xl bg-white shadow-sm text-gray-900 font-black" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
+                    <option value="">Choose an Event to Track...</option>
+                    {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                </select>
+                {/* SEARCH INPUT ADDED */}
+                <div className="relative w-1/3">
+                    <input 
+                      placeholder="Search participants..." 
+                      className="w-full h-full px-6 border border-gray-300 rounded-2xl bg-white shadow-sm text-gray-900 font-bold placeholder:text-gray-300"
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 opacity-20">🔍</span>
+                </div>
+             </div>
+
              {selectedEventId && (
                 <div className="bg-white rounded-[32px] border border-gray-200 overflow-hidden shadow-sm">
                    <div className="p-10 flex justify-between border-b items-center">
@@ -332,7 +353,7 @@ export default function EventEaseApp() {
                           <th className="p-6 px-10 text-right">ACTION</th>
                         </tr>
                       </thead>
-                      <tbody>{participants.filter(p => p.eventId === selectedEventId).map(p => (
+                      <tbody>{displayedParticipants.map(p => (
                         <tr key={p.id} className="border-b hover:bg-gray-50 transition-colors">
                           <td className="p-6 px-10 text-gray-900">{p.name}</td>
                           <td className="p-6 px-10 text-gray-500 font-bold text-sm">{p.email}</td>
@@ -355,6 +376,9 @@ export default function EventEaseApp() {
                         </tr>
                       ))}</tbody>
                    </table>
+                   {displayedParticipants.length === 0 && (
+                     <div className="p-20 text-center font-black text-gray-300 uppercase tracking-widest text-xs">No participants found</div>
+                   )}
                 </div>
              )}
           </div>
