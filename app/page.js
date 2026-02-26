@@ -142,11 +142,22 @@ export default function EventEaseApp() {
     finally { setIsPredicting(false); }
   };
 
+  // --- UPDATED EXCEL EXPORT LOGIC ---
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(participants.filter(p => p.eventId === selectedEventId));
+    const filtered = participants.filter(p => p.eventId === selectedEventId);
+    
+    // Format data specifically for the Excel sheet
+    const dataToExport = filtered.map(p => ({
+      'Full Name': p.name,
+      'Email Address': p.email,
+      'Department': p.dept || 'N/A',
+      'Attendance Status': p.status === 'CHECKED IN' ? 'PRESENT (Checked In)' : 'ABSENT (Registered Only)'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-    XLSX.writeFile(wb, "Report.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance Data");
+    XLSX.writeFile(wb, `Attendance_Report_${Date.now()}.xlsx`);
   };
 
   // --- RENDERERS ---
@@ -229,7 +240,7 @@ export default function EventEaseApp() {
 
       <main className="ml-64 p-12 w-full">
         <header className="flex justify-between items-center mb-10">
-          <div><h1 className="text-3xl font-black text-gray-900 capitalize">{view}</h1><p className="text-sm text-gray-600 font-black">Admin Panel</p></div>
+          <div><h1 className="text-3xl font-black text-gray-900 capitalize">{view}</h1><p className="text-sm text-gray-600 font-black">Admin Management</p></div>
           <button onClick={() => setShowNewEventModal(true)} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-black shadow-lg hover:bg-indigo-700 transition-all">+ New Event</button>
         </header>
 
@@ -237,10 +248,10 @@ export default function EventEaseApp() {
           <div className="space-y-6 animate-in fade-in">
             <div className="grid grid-cols-4 gap-6">
               {[
-                { l: 'Events', v: events.length, i: '📅', c: 'text-blue-600 border-blue-200 bg-blue-50/40' },
-                { l: 'Participants', v: participants.length, i: '👥', c: 'text-emerald-600 border-emerald-200 bg-emerald-50/40' },
+                { l: 'Total Events', v: events.length, i: '📅', c: 'text-blue-600 border-blue-200 bg-blue-50/40' },
+                { l: 'Total Participants', v: participants.length, i: '👥', c: 'text-emerald-600 border-emerald-200 bg-emerald-50/40' },
                 { l: 'Attendance Rate', v: `${participants.length > 0 ? (participants.filter(p => p.status === 'CHECKED IN').length / participants.length * 100).toFixed(0) : 0}%`, i: '🎯', c: 'text-orange-600 border-orange-200 bg-orange-50/40' },
-                { l: 'Depts', v: new Set(participants.map(p => p.dept)).size, i: '📈', c: 'text-indigo-600 border-indigo-200 bg-indigo-50/40' }
+                { l: 'Active Depts', v: new Set(participants.map(p => p.dept)).size, i: '📈', c: 'text-indigo-600 border-indigo-200 bg-indigo-50/40' }
               ].map((s, i) => (
                 <div key={i} className="p-6 rounded-[24px] border border-gray-200 bg-white shadow-sm flex flex-col gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${s.c}`}>{s.i}</div>
@@ -250,7 +261,7 @@ export default function EventEaseApp() {
             </div>
 
             <div className="p-10 rounded-[32px] text-white flex flex-col gap-4 shadow-xl" style={{ backgroundColor: primaryColor }}>
-               <h3 className="text-xl font-black flex items-center gap-2">📈 AI Analysis</h3>
+               <h3 className="text-xl font-black flex items-center gap-2">📈 AI Predictions</h3>
                {!predictionResult ? (
                  <button onClick={handleAIAnalysis} disabled={isPredicting} className="bg-white text-indigo-700 px-8 py-3 rounded-2xl font-black w-fit hover:bg-gray-100">
                     {isPredicting ? '🧠 Analyzing...' : 'Generate Prediction'}
@@ -283,7 +294,7 @@ export default function EventEaseApp() {
 
         {view === 'registration' && (
           <div className="max-w-4xl mx-auto pt-10">
-            <h2 className="text-5xl font-black mb-10 text-center text-gray-900">Registration Portal</h2>
+            <h2 className="text-5xl font-black mb-10 text-center text-gray-900">Admin Registration</h2>
             <form onSubmit={handleRegister} className="w-full max-w-3xl space-y-12 bg-white p-20 rounded-[48px] shadow-sm border border-gray-200">
                <select required className="w-full p-6 bg-gray-50 border border-gray-300 rounded-[24px] outline-none text-gray-900 font-black" value={regForm.eventId} onChange={e=>setRegForm({...regForm, eventId:e.target.value})}>
                   <option value="">Select Event...</option>
@@ -291,12 +302,12 @@ export default function EventEaseApp() {
                </select>
                <input required className="w-full p-6 border border-gray-300 rounded-[24px] text-gray-900 font-black" placeholder="Name" value={regForm.name} onChange={e=>setRegForm({...regForm, name:e.target.value})} />
                <input required type="email" className="w-full p-6 border border-gray-300 rounded-[24px] text-gray-900 font-black" placeholder="Email" value={regForm.email} onChange={e=>setRegForm({...regForm, email:e.target.value})} />
-               <button type="submit" className="w-full py-6 bg-indigo-600 text-white rounded-[28px] font-black text-2xl shadow-xl transition-all active:scale-95">Register Now</button>
+               <button type="submit" className="w-full py-6 bg-indigo-600 text-white rounded-[28px] font-black text-2xl shadow-xl">Register Now</button>
             </form>
           </div>
         )}
 
-        {/* ATTENDANCE VIEW - FIXED TO SHOW EMAIL */}
+        {/* ATTENDANCE VIEW - UPDATED WITH STATUS COLUMN */}
         {view === 'attendance' && (
           <div className="space-y-8 animate-in fade-in">
              <select className="w-full p-5 border border-gray-300 rounded-2xl bg-white shadow-sm text-gray-900 font-black" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
@@ -305,18 +316,38 @@ export default function EventEaseApp() {
              </select>
              {selectedEventId && (
                 <div className="bg-white rounded-[32px] border border-gray-200 overflow-hidden shadow-sm">
-                   <div className="p-10 flex justify-between border-b items-center"><h3 className="font-black text-gray-900 text-xl">Participant List</h3><button onClick={exportExcel} className="text-indigo-700 font-black hover:underline">📄 Export Excel</button></div>
+                   <div className="p-10 flex justify-between border-b items-center">
+                      <h3 className="font-black text-gray-900 text-xl">Participant List</h3>
+                      <button onClick={exportExcel} className="text-indigo-700 font-black hover:underline">📄 Export Excel (Full Status)</button>
+                   </div>
                    <table className="w-full text-left font-black">
-                      <thead className="bg-gray-100 text-[11px] uppercase text-gray-700 tracking-widest border-b"><tr className="border-b">
-                        <th className="p-6 px-10">Name</th>
-                        <th className="p-6 px-10">Email</th> {/* Added Header */}
-                        <th className="p-6 px-10 text-right">Action</th>
-                      </tr></thead>
+                      <thead className="bg-gray-100 text-[11px] uppercase text-gray-700 tracking-widest border-b">
+                        <tr className="border-b">
+                          <th className="p-6 px-10">Name & Email</th>
+                          <th className="p-6 px-10">Status</th> {/* New Status Header */}
+                          <th className="p-6 px-10 text-right">Action</th>
+                        </tr>
+                      </thead>
                       <tbody>{participants.filter(p => p.eventId === selectedEventId).map(p => (
                         <tr key={p.id} className="border-b">
-                          <td className="p-6 px-10 text-gray-900">{p.name}</td>
-                          <td className="p-6 px-10 text-gray-600 font-bold">{p.email}</td> {/* Added Email Data */}
-                          <td className="p-6 px-10 text-right"><button onClick={()=>handleCheckIn(p.id)} disabled={p.status==='CHECKED IN'} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black disabled:bg-gray-200">{p.status === 'CHECKED IN' ? 'Checked' : 'Check In'}</button></td>
+                          <td className="p-6 px-10">
+                            <p className="text-gray-900">{p.name}</p>
+                            <p className="text-xs text-gray-500 font-bold">{p.email}</p>
+                          </td>
+                          <td className="p-6 px-10">
+                            <span className={`px-3 py-1 rounded-full text-[10px] uppercase ${p.status === 'CHECKED IN' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                              {p.status === 'CHECKED IN' ? 'Present' : 'Absent'}
+                            </span>
+                          </td>
+                          <td className="p-6 px-10 text-right">
+                            <button 
+                              onClick={()=>handleCheckIn(p.id)} 
+                              disabled={p.status==='CHECKED IN'} 
+                              className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black disabled:bg-gray-100 disabled:text-gray-400"
+                            >
+                              {p.status === 'CHECKED IN' ? 'Checked' : 'Check In'}
+                            </button>
+                          </td>
                         </tr>
                       ))}</tbody>
                    </table>
@@ -330,11 +361,14 @@ export default function EventEaseApp() {
       {showNewEventModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="p-10 rounded-[24px] max-w-lg w-full bg-white shadow-2xl border border-gray-100 animate-in zoom-in-95">
-            <h2 className="text-2xl font-black text-gray-900 mb-8 text-left uppercase tracking-tighter">Create Event</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-8 text-left uppercase">Create Event</h2>
             <div className="space-y-5 text-left font-black">
                <div><label className="text-gray-500 text-xs">Event Title</label><input autoFocus className="w-full p-4 border rounded-xl outline-none" value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title:e.target.value})} /></div>
                <div><label className="text-gray-500 text-xs">Date</label><input type="datetime-local" className="w-full p-4 border rounded-xl text-gray-900 font-bold" value={newEvent.date} onChange={e=>setNewEvent({...newEvent, date:e.target.value})} /></div>
-               <div className="flex gap-4 pt-4"><button onClick={()=>setShowNewEventModal(false)} className="flex-1 py-4 border rounded-2xl text-gray-700 font-black">Cancel</button><button onClick={handleAddEvent} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black">Create</button></div>
+               <div className="flex gap-4 pt-4">
+                 <button onClick={()=>setShowNewEventModal(false)} className="flex-1 py-4 border rounded-2xl text-gray-700 font-black">Cancel</button>
+                 <button onClick={handleAddEvent} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black">Create</button>
+               </div>
             </div>
           </div>
         </div>
