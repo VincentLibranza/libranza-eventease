@@ -3,38 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --background: #f8fafc;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: #f8fafc; /* This matches your light dashboard background */
+  background-color: #f8fafc;
+  color: #0f172a;
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Custom animations for the fade-in and zoom-in effects we used */
-@layer utilities {
-  .animate-in {
-    animation-duration: 300ms;
-    animation-fill-mode: both;
-  }
-
-  .fade-in {
-    animation-name: fadeIn;
-  }
-
-  .zoom-in-95 {
-    animation-name: zoomIn95;
-  }
+/* Smooth fade-in for the tabs */
+.animate-in {
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes zoomIn95 {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
