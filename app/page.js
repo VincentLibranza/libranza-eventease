@@ -40,7 +40,6 @@ export default function EventEaseApp() {
         if (data.events) setEvents(data.events);
         if (data.participants) setParticipants(data.participants);
 
-        // LINK DETECTION
         if (typeof window !== 'undefined') {
           const params = new URLSearchParams(window.location.search);
           const eventIdFromUrl = params.get('event');
@@ -49,7 +48,6 @@ export default function EventEaseApp() {
             setRegForm(prev => ({ ...prev, eventId: eventIdFromUrl }));
           }
         }
-
       } catch (e) { console.error("Load failed", e); }
       finally { setIsLoading(false); }
     }
@@ -102,14 +100,25 @@ export default function EventEaseApp() {
     }
   };
 
+  // --- FAST REGISTRATION LOGIC ---
   const handleRegister = (e) => {
     e.preventDefault();
     if(!regForm.eventId) return alert("Missing Event ID");
-    const newList = [...participants, { ...regForm, id: Date.now().toString(), status: 'REGISTERED' }];
-    setParticipants(newList);
-    syncToDb(null, newList);
-    setRegForm({ eventId: '', name: '', email: '', dept: '' });
+
+    // 1. Create the data object
+    const newParticipant = { ...regForm, id: Date.now().toString(), status: 'REGISTERED' };
+    const updatedParticipants = [...participants, newParticipant];
+
+    // 2. Update UI INSTANTLY (Optimistic Update)
+    setParticipants(updatedParticipants);
+    setRegForm({ eventId: regForm.eventId, name: '', email: '', dept: '' }); // Keep event selected, clear rest
+    
+    // 3. Send to DB in the background (Fast)
+    syncToDb(null, updatedParticipants);
+
+    // 4. Alert user immediately
     alert("Success! You are registered.");
+    
     if (authMode === 'public_register') {
         if (typeof window !== 'undefined') window.history.replaceState({}, '', '/'); 
         setAuthMode('login');
@@ -143,39 +152,37 @@ export default function EventEaseApp() {
     finally { setIsPredicting(false); }
   };
 
+  const exportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(participants.filter(p => p.eventId === selectedEventId));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+    XLSX.writeFile(wb, "Report.xlsx");
+  };
+
   // --- RENDERERS ---
 
-  if (isLoading) return <div className="h-screen flex items-center justify-center font-black text-indigo-600 bg-white">Connecting...</div>;
+  if (isLoading) return <div className="h-screen flex items-center justify-center font-black text-indigo-600 bg-white">Syncing with database...</div>;
 
   if (!isLoggedIn) {
     const activeEventTitle = events.find(e => e.id === regForm.eventId)?.title;
-
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc]">
         <div className="p-10 rounded-[40px] shadow-2xl w-full max-w-md border bg-white border-gray-100">
           <div className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white text-3xl font-bold bg-indigo-600">📅</div>
           <h1 className="text-3xl font-black mb-8 text-center text-gray-900">EventEase</h1>
-          
           {authMode === 'public_register' ? (
             <form onSubmit={handleRegister} className="space-y-4">
-               <p className="text-center font-black text-gray-900 mb-2 uppercase text-xs tracking-tighter">Event Registration</p>
-               
-               {/* 🛑 REPLACED SELECTOR WITH STATIC LABEL FOR SHARED LINKS */}
+               <p className="text-center font-black text-gray-900 mb-2 uppercase text-xs">Event Registration</p>
                <div className="bg-indigo-50 border border-indigo-100 p-5 rounded-2xl text-center mb-4">
                   <p className="text-[10px] font-black uppercase text-indigo-400 tracking-widest mb-1">Registrating for</p>
-                  <h2 className="text-xl font-black text-gray-900 leading-tight">
-                    {activeEventTitle || "Select an Event"}
-                  </h2>
+                  <h2 className="text-xl font-black text-gray-900 leading-tight">{activeEventTitle || "Select Event"}</h2>
                </div>
-
-               {/* FALLBACK: Only show selector if there is no linked event */}
                {!regForm.eventId && (
                  <select required className="w-full p-4 border rounded-2xl text-gray-900 font-bold outline-none" value={regForm.eventId} onChange={e=>setRegForm({...regForm, eventId:e.target.value})}>
                     <option value="">Choose an Event...</option>
                     {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
                  </select>
                )}
-
                <input required className="w-full p-4 border rounded-2xl text-gray-900 font-bold" placeholder="Full Name" value={regForm.name} onChange={e=>setRegForm({...regForm, name:e.target.value})} />
                <input required type="email" className="w-full p-4 border rounded-2xl text-gray-900 font-bold" placeholder="Email" value={regForm.email} onChange={e=>setRegForm({...regForm, email:e.target.value})} />
                <input className="w-full p-4 border rounded-2xl text-gray-900 font-bold" placeholder="Department" value={regForm.dept} onChange={e=>setRegForm({...regForm, dept:e.target.value})} />
@@ -186,8 +193,8 @@ export default function EventEaseApp() {
             <>
               <form onSubmit={handleAuth} className="space-y-4">
                 {authMode === 'signup' && <input required className="w-full p-4 border rounded-2xl text-gray-900 font-black" placeholder="Admin Name" onChange={e => setAuthForm({...authForm, name: e.target.value})} />}
-                <input required type="email" className="w-full p-4 border rounded-2xl text-gray-900 font-black" placeholder="Email" onChange={e => setAuthForm({...authForm, email: e.target.value})} />
-                <input required type="password" className="w-full p-4 border rounded-2xl text-gray-900 font-black" placeholder="Password" onChange={e => setAuthForm({...authForm, password: e.target.value})} />
+                <input required type="email" className="w-full p-4 border border-gray-300 rounded-2xl text-gray-900 font-black" placeholder="Email" onChange={e => setAuthForm({...authForm, email: e.target.value})} />
+                <input required type="password" className="w-full p-4 border border-gray-300 rounded-2xl text-gray-900 font-black" placeholder="Password" onChange={e => setAuthForm({...authForm, password: e.target.value})} />
                 {authError && <p className="text-red-600 text-xs font-black text-center">{authError}</p>}
                 <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">
                     {authMode === 'login' ? 'Sign In' : 'Create Admin'}
@@ -209,7 +216,6 @@ export default function EventEaseApp() {
     );
   }
 
-  // ADMIN DASHBOARD (Code remains identical to before)
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
       <aside className="w-64 border-r h-screen p-6 flex flex-col fixed left-0 top-0 z-40 bg-white">
@@ -233,7 +239,7 @@ export default function EventEaseApp() {
       <main className="ml-64 p-12 w-full">
         <header className="flex justify-between items-center mb-10">
           <div><h1 className="text-3xl font-black text-gray-900 capitalize">{view}</h1><p className="text-sm text-gray-600 font-black">Admin Panel</p></div>
-          <button onClick={() => setShowNewEventModal(true)} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-black shadow-lg hover:bg-indigo-700 transition-all">+ New Event</button>
+          <button onClick={() => setShowNewEventModal(true)} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-black shadow-lg hover:bg-indigo-700">+ New Event</button>
         </header>
 
         {view === 'dashboard' && (
@@ -259,7 +265,7 @@ export default function EventEaseApp() {
                     {isPredicting ? '🧠 Analyzing...' : 'Generate Prediction'}
                  </button>
                ) : (
-                 <div className="bg-white/10 p-6 rounded-2xl border border-white/20 space-y-2 animate-in zoom-in-95">
+                 <div className="bg-white/10 p-6 rounded-2xl border border-white/20 space-y-2">
                     <p className="text-2xl font-black text-white">Prediction: {predictionResult?.estimatedTurnout}</p>
                     <p className="text-sm font-bold text-white">{predictionResult?.trend}</p>
                     <button onClick={()=>setPredictionResult(null)} className="text-[10px] underline uppercase font-black text-white/80 mt-2">Reset</button>
@@ -324,7 +330,7 @@ export default function EventEaseApp() {
       {showNewEventModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="p-10 rounded-[24px] max-w-lg w-full bg-white shadow-2xl border border-gray-100 animate-in zoom-in-95">
-            <h2 className="text-2xl font-black text-gray-900 mb-8 text-left uppercase tracking-tighter">Create Event</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-8 text-left uppercase">Create Event</h2>
             <div className="space-y-5 text-left font-black">
                <div><label className="text-gray-500 text-xs">Event Title</label><input autoFocus className="w-full p-4 border rounded-xl outline-none" value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title:e.target.value})} /></div>
                <div><label className="text-gray-500 text-xs">Date</label><input type="datetime-local" className="w-full p-4 border rounded-xl text-gray-900 font-bold" value={newEvent.date} onChange={e=>setNewEvent({...newEvent, date:e.target.value})} /></div>
