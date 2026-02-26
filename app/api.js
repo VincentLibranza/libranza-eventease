@@ -1,29 +1,38 @@
+import { kv } from '@vercel/kv';
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   try {
-    const { promptText } = await request.json();
-    const apiKey = process.env.GEMINI_API_KEY; // Vercel pulls this from your settings
+    const { action, email, password, name } = await request.json();
+    const users = await kv.get('users') || [];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
-      }
-    );
+    // --- SIGNUP LOGIC ---
+    if (action === 'signup') {
+      const exists = users.find(u => u.email === email);
+      if (exists) return NextResponse.json({ error: 'User already exists' }, { status: 400 });
 
-    const data = await response.json();
-    const aiText = data.candidates[0].content.parts[0].text;
-    
-    // Clean JSON from markdown if necessary
-    const cleanedJson = aiText.replace(/```json|```/g, '').trim();
-    
-    return NextResponse.json(JSON.parse(cleanedJson));
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = { id: Date.now().toString(), email, password: hashedPassword, name };
+      
+      const updatedUsers = [...users, newUser];
+      await kv.set('users', updatedUsers);
+      
+      return NextResponse.json({ success: true, user: { name: newUser.name, email: newUser.email } });
+    }
+
+    // --- LOGIN LOGIC ---
+    if (action === 'login') {
+      const user = users.find(u => u.email === email);
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+
+      return NextResponse.json({ success: true, user: { name: user.name, email: user.email } });
+    }
+
   } catch (error) {
-    return NextResponse.json({ error: 'AI processing failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
   }
 }
