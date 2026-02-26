@@ -20,7 +20,7 @@ export default function EventEaseApp() {
   // UI States
   const [selectedEventId, setSelectedEventId] = useState('');
   const [showNewEventModal, setShowNewEventModal] = useState(false);
-  const [editingEventId, setEditingEventId] = useState(null); // Track if editing
+  const [editingEventId, setEditingEventId] = useState(null); 
   const [newEvent, setNewEvent] = useState({ title: '', date: '', location: '', capacity: '100' });
   
   // Registration Form State
@@ -87,15 +87,11 @@ export default function EventEaseApp() {
   const handleSaveEvent = () => {
     if (!newEvent.title) return;
     let newList;
-
     if (editingEventId) {
-      // Update existing
       newList = events.map(e => e.id === editingEventId ? { ...newEvent, id: editingEventId } : e);
     } else {
-      // Create new
       newList = [...events, { ...newEvent, id: Date.now().toString() }];
     }
-
     setEvents(newList);
     syncToDb(newList, null);
     setShowNewEventModal(false);
@@ -158,18 +154,20 @@ export default function EventEaseApp() {
     finally { setIsPredicting(false); }
   };
 
+  // UPDATED EXCEL EXPORT LOGIC
   const exportExcel = () => {
     const filtered = participants.filter(p => p.eventId === selectedEventId);
     const dataToExport = filtered.map(p => ({
-      'Full Name': p.name, 'Email': p.email, 'Dept': p.dept, 'Status': p.status
+      'Full Name': p.name, 
+      'Email': p.email, 
+      'Dept': p.dept, 
+      'Attendance Status': p.status === 'CHECKED IN' ? 'Present' : 'Not Present'
     }));
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-    XLSX.writeFile(wb, `Report_${Date.now()}.xlsx`);
+    XLSX.writeFile(wb, `Attendance_Report_${Date.now()}.xlsx`);
   };
-
-  // --- RENDERERS ---
 
   if (isLoading) return <div className="h-screen flex items-center justify-center font-black text-indigo-600 bg-white">Loading EventEase...</div>;
 
@@ -282,7 +280,6 @@ export default function EventEaseApp() {
                   <div className="h-44 bg-slate-100 relative">
                       <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=500&auto=format&fit=crop" className="w-full h-full object-cover opacity-80" alt="event" />
                       <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {/* ADDED EDIT BUTTON */}
                          <button onClick={() => handleEditClick(e)} className="bg-white text-indigo-600 w-8 h-8 rounded-full shadow-lg font-black text-xs flex items-center justify-center hover:bg-gray-50">✎</button>
                          <button onClick={() => handleDeleteEvent(e.id)} className="bg-red-500 text-white w-8 h-8 rounded-full shadow-lg font-black flex items-center justify-center hover:bg-red-600">✕</button>
                       </div>
@@ -331,6 +328,7 @@ export default function EventEaseApp() {
                         <tr className="border-b">
                           <th className="p-6 px-10">NAME</th>
                           <th className="p-6 px-10">EMAIL</th>
+                          <th className="p-6 px-10">STATUS</th>
                           <th className="p-6 px-10 text-right">ACTION</th>
                         </tr>
                       </thead>
@@ -338,6 +336,13 @@ export default function EventEaseApp() {
                         <tr key={p.id} className="border-b hover:bg-gray-50 transition-colors">
                           <td className="p-6 px-10 text-gray-900">{p.name}</td>
                           <td className="p-6 px-10 text-gray-500 font-bold text-sm">{p.email}</td>
+                          <td className="p-6 px-10">
+                            {p.status === 'CHECKED IN' ? (
+                              <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Present</span>
+                            ) : (
+                              <span className="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-[10px] font-black uppercase">Not Present</span>
+                            )}
+                          </td>
                           <td className="p-6 px-10 text-right">
                             <button 
                               onClick={()=>handleCheckIn(p.id)} 
@@ -356,37 +361,31 @@ export default function EventEaseApp() {
         )}
       </main>
 
-      {/* 🛑 MODAL RESTORED PER IMAGE + EDITOR SUPPORT */}
       {showNewEventModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="p-10 rounded-[24px] max-w-lg w-full bg-white shadow-2xl animate-in zoom-in-95">
             <h2 className="text-3xl font-bold text-gray-900 mb-8 text-left">{editingEventId ? "Edit Event" : "Create New Event"}</h2>
-            
             <div className="space-y-5 text-left font-black">
                <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-1">Event Title</label>
                   <input autoFocus className="w-full p-3.5 border border-gray-200 rounded-xl outline-none font-bold text-gray-900 focus:border-indigo-500" 
                     value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title:e.target.value})} />
                </div>
-
                <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-1">Date</label>
                   <input type="datetime-local" className="w-full p-3.5 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:border-indigo-500" 
                     value={newEvent.date} onChange={e=>setNewEvent({...newEvent, date:e.target.value})} />
                </div>
-
                <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-1">Location</label>
                   <input className="w-full p-3.5 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:border-indigo-500" 
                     value={newEvent.location} onChange={e=>setNewEvent({...newEvent, location:e.target.value})} />
                </div>
-
                <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-1">Capacity</label>
                   <input type="number" className="w-full p-3.5 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:border-indigo-500" 
                     value={newEvent.capacity} onChange={e=>setNewEvent({...newEvent, capacity:e.target.value})} />
                </div>
-
                <div className="flex gap-4 pt-6">
                  <button onClick={()=>{setShowNewEventModal(false); setEditingEventId(null);}} className="flex-1 py-4 font-bold border border-gray-200 rounded-2xl text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
                  <button onClick={handleSaveEvent} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-colors">
