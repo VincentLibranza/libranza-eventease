@@ -1,30 +1,29 @@
 import { createClient } from 'redis';
 
-let redisClient;
+const url = process.env.KV_URL || process.env.REDIS_URL;
 
-export async function getRedisClient() {
-  // If we already have a client and it's connected, use it
-  if (redisClient?.isOpen) {
-    return redisClient;
-  }
+const globalForRedis = global;
 
-  // Use KV_URL (Vercel's default) or REDIS_URL
-  const url = process.env.KV_URL || process.env.REDIS_URL;
-
+export const getRedisClient = async () => {
   if (!url) {
-    throw new Error("Redis URL is missing. Check your Vercel Environment Variables.");
+    throw new Error("REDIS_URL or KV_URL is missing in environment variables.");
   }
 
-  redisClient = createClient({ url });
-
-  redisClient.on('error', (err) => console.error('Redis Error:', err));
-
-  try {
-    await redisClient.connect();
-  } catch (err) {
-    console.error('Redis Connection Failed:', err);
-    throw err;
+  if (globalForRedis.redisClient?.isOpen) {
+    return globalForRedis.redisClient;
   }
 
-  return redisClient;
-}
+  const client = createClient({ url });
+
+  client.on('error', (err) => console.error('Redis Client Error', err));
+
+  if (!client.isOpen) {
+    await client.connect();
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    globalForRedis.redisClient = client;
+  }
+  
+  return client;
+};
