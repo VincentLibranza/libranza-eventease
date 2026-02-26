@@ -8,12 +8,13 @@ export async function GET(request) {
 
     if (!userId) return NextResponse.json({ events: [], participants: [] });
 
-    // Fetch user-specific data
+    // Using the named export 'redis'
     const events = await redis.get(`events:${userId}`) || [];
     const participants = await redis.get(`participants:${userId}`) || [];
 
     return NextResponse.json({ events, participants });
   } catch (error) {
+    console.error("DB GET Error:", error);
     return NextResponse.json({ events: [], participants: [] });
   }
 }
@@ -30,6 +31,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("DB POST Error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 }
